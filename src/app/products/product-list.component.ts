@@ -1,18 +1,24 @@
-import { Component, OnInit } from '@angular/core';
+import { ThisReceiver } from '@angular/compiler';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { IProduct } from './product';
+import { ProductService } from './product.service';
 
 @Component({
   selector: 'pm-products',
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.css'],
 })
-export class ProductListComponent implements OnInit {
+export class ProductListComponent implements OnInit, OnDestroy {
+  constructor(private productService: ProductService) {}
+
+  private _listFilter: string = '';
   pageTitle: string = 'Product List';
   imageWidth: number = 50;
   imageMargin: number = 4;
   showImage: boolean = false;
-
-  private _listFilter: string = '';
+  errorMessage: string = '';
+  sub!: Subscription;
 
   get listFilter(): string {
     return this._listFilter;
@@ -26,38 +32,7 @@ export class ProductListComponent implements OnInit {
   }
 
   filteredProducts: IProduct[] = [];
-  products: IProduct[] = [
-    {
-      productId: 1,
-      productName: 'Garden Cart',
-      productCode: 'GDN-0023',
-      releaseDate: 'March 12, 2021',
-      description: '15 gallon capacity rolling garden cart',
-      price: 32.99,
-      starRating: 4.2,
-      imageUrl: 'assets/images/garden_cart.png',
-    },
-    {
-      productId: 2,
-      productName: 'Leaf Rake',
-      productCode: 'GDN-0011',
-      releaseDate: 'March 19, 2021',
-      description: 'Leaf rake with 48-inch wooden handle.',
-      price: 19.95,
-      starRating: 3,
-      imageUrl: 'assets/images/leaf_rake.png',
-    },
-    {
-      productId: 5,
-      productName: 'Hammer',
-      productCode: 'TBX-0048',
-      releaseDate: 'May 7, 2021',
-      description: 'Curved claw steel hammer',
-      price: 8.99,
-      starRating: 4.8,
-      imageUrl: 'assets/images/hammer.png',
-    },
-  ];
+  products: IProduct[] = [];
 
   performFilter(filterBy: string): IProduct[] {
     filterBy = filterBy.toLocaleLowerCase();
@@ -71,10 +46,20 @@ export class ProductListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this._listFilter = 'cart';
+    this.sub = this.productService.getProducts().subscribe({
+      next: (products) => {
+        this.products = products;
+        this.filteredProducts = this.products;
+      },
+      error: (err) => (this.errorMessage = err),
+    });
   }
 
   onRatingClicked(message: string): void {
     this.pageTitle = 'Product List: ' + message;
+  }
+
+  ngOnDestroy(): void {
+    this.sub.unsubscribe();
   }
 }
